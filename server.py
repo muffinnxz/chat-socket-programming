@@ -2,13 +2,15 @@ import socket
 import threading
 
 def client_thread(conn, addr, all_connections, clients):
-    """
-    Handle messages from a client.
-    """
     try:
         # First message from the connection is the username
         username = conn.recv(1024).decode('utf-8').strip()
-        clients[username] = conn
+        if username:
+            clients[username] = conn
+            broadcast(f"Server: {username} has joined the chat!", conn, all_connections, include_self=False)
+        else:
+            raise Exception("Username cannot be empty")
+        
         conn.send("Server: Welcome to the chat room!".encode('utf-8'))
         print(f"User connected: {username} from {addr}")
 
@@ -46,30 +48,24 @@ def get_username(conn, clients):
             return username
     return None
 
-def broadcast(message, connection, all_connections):
-    """
-    Broadcast messages to all clients including the sender for testing purposes.
-    """
+def broadcast(message, connection, all_connections, include_self=True):
     for client in all_connections:
-        try:
-            client.send(message.encode('utf-8'))
-        except Exception as e:
-            print(f"Error broadcasting to a client: {e}")
-            remove_connection(client, all_connections)
+        if client != connection or include_self:
+            try:
+                client.send(message.encode('utf-8'))
+            except Exception as e:
+                print(f"Error broadcasting message: {e}")
 
 def remove_connection(conn, all_connections, clients):
-    """
-    Remove a client connection from the list and the username mapping.
-    """
     if conn in all_connections:
         all_connections.remove(conn)
         username = None
         for user, connection in clients.items():
             if connection == conn:
                 username = user
+                broadcast(f"Server: {username} has left the chat.", conn, all_connections, include_self=False)
+                del clients[username]
                 break
-        if username:
-            del clients[username]
         conn.close()
         print(f"Connection with {username if username else 'Unknown'} has been removed.")
 
