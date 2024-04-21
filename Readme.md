@@ -6,5 +6,6 @@ A basic chat app that utilize the socket programming
 
 **Features:**
 - sending / receving message
+- press "enter" to send message
 - use "/whisper" to send private message to someone
 - enter and leave chat message
