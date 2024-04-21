@@ -36,21 +36,29 @@ class ChatClient:
             self.root.quit()
 
     def chat_window(self):
+      self.username_label = tk.Label(self.root, text=f"Username: {self.username}")
+      self.username_label.pack(padx=20, pady=5)
+
       self.text_area = tk.Text(self.root)
       self.text_area.pack(padx=20, pady=20)
       self.text_area.config(state=tk.DISABLED)  # Set the text area to disabled to make it read-only
 
+      self.entry_frame = tk.Frame(self.root)
+      self.entry_frame.pack(padx=20, pady=20, fill=tk.BOTH)
+
       self.message_var = tk.StringVar()
-      self.message_entry = tk.Entry(self.root, textvariable=self.message_var)
-      self.message_entry.pack(padx=20, pady=20, fill=tk.X)
-      
-      self.send_button = tk.Button(self.root, text="Send", command=self.send_message)
-      self.send_button.pack(padx=20, pady=20)
+      self.message_entry = tk.Entry(self.entry_frame, textvariable=self.message_var)
+      self.message_entry.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
+
+      self.send_button = tk.Button(self.entry_frame, text="Send", command=self.send_message)
+      self.send_button.pack(side=tk.RIGHT, padx=(5, 0))
+
+      self.message_entry.bind("<Return>", self.send_message)
 
       threading.Thread(target=self.receive_message, daemon=True).start()
 
 
-    def send_message(self):
+    def send_message(self, event=None):
       message = self.message_var.get()
       if message:
           if message.startswith("/whisper") and len(message.split()) < 3:
