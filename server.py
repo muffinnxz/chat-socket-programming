@@ -1,27 +1,50 @@
 import socket
 import threading
 
-def client_thread(conn, addr, all_connections):
+def client_thread(conn, addr, all_connections, clients):
     """
     Handle messages from a client.
     """
-    conn.send("Server: Welcome to the chat room!".encode('utf-8'))  # Server welcome message
-    while True:
-        try:
-            # Receiving message from the client
+    try:
+        # First message from the connection is the username
+        username = conn.recv(1024).decode('utf-8').strip()
+        clients[username] = conn
+        conn.send("Server: Welcome to the chat room!".encode('utf-8'))
+        print(f"User connected: {username} from {addr}")
+
+        while True:
             message = conn.recv(1024).decode('utf-8')
             if message:
-                print(f"Message received from {addr}: {message}")
-                # Broadcasting message to all clients
-                broadcast(f"{message}", conn, all_connections)
+                if message.startswith("/whisper"):
+                    handle_whisper(message, conn, clients, username)
+                else:
+                    print(f"Message received from {username}: {message}")
+                    broadcast(f"{username}: {message}", conn, all_connections)
             else:
-                # Remove connection if no message is received
-                remove_connection(conn, all_connections)
-                break
-        except Exception as e:
-            print(f"Error handling message from {addr}: {e}")
-            remove_connection(conn, all_connections)
-            break
+                raise Exception("Client disconnected")
+    except Exception as e:
+        print(f"Error or disconnection with {username}: {e}")
+        remove_connection(conn, all_connections, clients)
+
+def handle_whisper(message, sender_conn, clients, sender_username):
+    parts = message.split(maxsplit=2)  # Split into command, username, message
+    if len(parts) < 3:
+        sender_conn.send("Server: Invalid whisper command. Use /whisper <username> \"<message>\".".encode('utf-8'))
+        return
+    _, target_username, msg = parts
+    receiver_conn = clients.get(target_username)
+    if receiver_conn:
+        formatted_message = f"(whisper) {sender_username}: {msg}"
+        receiver_conn.send(formatted_message.encode('utf-8'))
+        sender_conn.send(formatted_message.encode('utf-8'))
+    else:
+        sender_conn.send(f"Server: No user named {target_username} found.".encode('utf-8'))
+
+def get_username(conn, clients):
+    for username, connection in clients.items():
+        if connection == conn:
+            return username
+    return None
 
 def broadcast(message, connection, all_connections):
     """
@@ -34,14 +57,21 @@ def broadcast(message, connection, all_connections):
             print(f"Error broadcasting to a client: {e}")
             remove_connection(client, all_connections)
 
-def remove_connection(conn, all_connections):
+def remove_connection(conn, all_connections, clients):
     """
-    Remove a client connection from the list.
+    Remove a client connection from the list and the username mapping.
     """
     if conn in all_connections:
-        print(f"Removing connection {conn.getpeername()}")
-        conn.close()
         all_connections.remove(conn)
+        username = None
+        for user, connection in clients.items():
+            if connection == conn:
+                username = user
+                break
+        if username:
+            del clients[username]
+        conn.close()
+        print(f"Connection with {username if username else 'Unknown'} has been removed.")
 
 def main():
     host = '127.0.0.1'
@@ -51,12 +81,15 @@ def main():
     server_socket.listen(5)
     print("Server started, waiting for connections...")
     all_connections = []
+    clients = {}
 
     while True:
         conn, addr = server_socket.accept()
         all_connections.append(conn)
         print(f"Connected to {addr}")
-        threading.Thread(target=client_thread, args=(conn, addr, all_connections)).start()
+        
+        # Start a new thread to handle the client; the first received message must be the username.
+        threading.Thread(target=client_thread, args=(conn, addr, all_connections, clients)).start()
 
 if __name__ == "__main__":
     main()

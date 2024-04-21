@@ -28,6 +28,8 @@ class ChatClient:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self.socket.connect((self.host, self.port))
+            # Send username right after connecting
+            self.socket.send(self.username.encode('utf-8'))
             self.chat_window()
         except Exception as e:
             print(f"Failed to connect to the server: {e}")
@@ -49,11 +51,15 @@ class ChatClient:
 
 
     def send_message(self):
-        message = self.message_var.get()
-        if message:
-            full_message = f"{self.username}: {message}"
-            self.socket.send(full_message.encode("utf-8"))
-            self.message_var.set("")  # Clear input field after sending
+      message = self.message_var.get()
+      if message:
+          if message.startswith("/whisper") and len(message.split()) < 3:
+              self.text_area.config(state=tk.NORMAL)
+              self.text_area.insert(tk.END, "Usage: /whisper <username> \"<message>\"\n")
+              self.text_area.config(state=tk.DISABLED)
+          else:
+              self.socket.send(message.encode('utf-8'))
+          self.message_var.set("")  # Clear input field after sending
 
     def receive_message(self):
       while True:
