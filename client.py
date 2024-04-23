@@ -129,6 +129,8 @@ class ChatClient:
                         self.group_label.config(text="No group joined")
                         self.text_area.delete('1.0', tk.END)  # Clear chat window
                         self.text_area.insert(tk.END, message + "\n", 'leave')
+                    elif message.startswith("Available Commands:"):
+                        self.text_area.insert(tk.END, message + "\n", 'help')  # Use a tag for help messages
                     else:
                         self.text_area.insert(tk.END, message + "\n")
                     self.text_area.see(tk.END)  # Auto-scroll to the bottom

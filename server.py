@@ -36,7 +36,22 @@ def client_thread(conn, addr, all_connections, clients, groups):
         while True:
             message = conn.recv(1024).decode("utf-8")
             if message:
-                if message.startswith("/whisper"):
+                if message.startswith("/help"):
+                    help_message = (
+                        "Available Commands:\n"
+                        "/whisper <username> <message> - Send a private message to <username>.\n"
+                        "/list - List all online users.\n"
+                        "/group create <groupname> - Create a new group named <groupname>.\n"
+                        "/group list - List all available groups.\n"
+                        "/group join <groupname> - Join an existing group named <groupname>.\n"
+                        "/group leave - Leave the current group.\n"
+                        "/group member - Show members of the current group.\n"
+                        "/group member <groupname> - Show members of a specific group.\n"
+                        "/chatgpt <question> - Ask a question to ChatGPT and get a private response.\n"
+                        "/help - Show this help message.\n"
+                    )
+                    conn.send(help_message.encode('utf-8'))
+                elif message.startswith("/whisper"):
                     handle_whisper(message, conn, clients, username)
                 elif message.startswith("/list"):
                     # Handle listing users with error check
