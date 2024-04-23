@@ -7,10 +7,9 @@ def client_thread(conn, addr, all_connections, clients):
         username = conn.recv(1024).decode('utf-8').strip()
         if username:
             if username in clients:
-                # If username is already taken, notify the client and close the connection
                 conn.send("Server: Username is already taken, please try again with a different username.".encode('utf-8'))
                 conn.close()
-                return  # Exit the thread for this connection
+                return
             clients[username] = conn
             broadcast(f"Server: {username} has joined the chat!", conn, all_connections, include_self=False)
         else:
@@ -24,6 +23,12 @@ def client_thread(conn, addr, all_connections, clients):
             if message:
                 if message.startswith("/whisper"):
                     handle_whisper(message, conn, clients, username)
+                elif message.startswith("/list"):
+                    # Handle listing users with error check
+                    if message.strip() == "/list":
+                        list_users(conn, clients)
+                    else:
+                        conn.send("Server: Invalid /list command. Use /list without any additional text.".encode('utf-8'))
                 else:
                     print(f"Message received from {username}: {message}")
                     broadcast(f"{username}: {message}", conn, all_connections)
@@ -32,6 +37,10 @@ def client_thread(conn, addr, all_connections, clients):
     except Exception as e:
         print(f"Error or disconnection with {username}: {e}")
         remove_connection(conn, all_connections, clients)
+
+def list_users(conn, clients):
+    user_list = "Online Users: " + ", ".join(clients.keys())
+    conn.send(user_list.encode('utf-8'))
 
 def handle_whisper(message, sender_conn, clients, sender_username):
     parts = message.split(maxsplit=2)  # Split into command, username, message

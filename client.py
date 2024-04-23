@@ -84,18 +84,21 @@ class ChatClient:
           self.message_var.set("")  # Clear input field after sending
 
     def receive_message(self):
-      while True:
-          try:
-              message = self.socket.recv(1024).decode('utf-8')
-              if message:
-                  self.text_area.config(state=tk.NORMAL)  # Temporarily make the text area writable
-                  self.text_area.insert(tk.END, message + "\n")
-                  self.text_area.see(tk.END)  # Auto-scroll to the bottom
-                  self.text_area.config(state=tk.DISABLED)  # Set it back to disabled
-          except Exception as e:
-              print(f"Error receiving message: {e}")
-              self.socket.close()
-              break
+        while True:
+            try:
+                message = self.socket.recv(1024).decode('utf-8')
+                if message:
+                    self.text_area.config(state=tk.NORMAL)  # Temporarily make the text area writable
+                    if "Online Users:" in message:
+                        self.text_area.insert(tk.END, message + "\n", 'list')
+                    else:
+                        self.text_area.insert(tk.END, message + "\n")
+                    self.text_area.see(tk.END)  # Auto-scroll to the bottom
+                    self.text_area.config(state=tk.DISABLED)  # Set it back to disabled
+            except Exception as e:
+                print(f"Error receiving message: {e}")
+                self.socket.close()
+                break
 
     def run(self):
         self.root.mainloop()
