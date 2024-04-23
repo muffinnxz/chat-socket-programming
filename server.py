@@ -1,6 +1,10 @@
 import socket
 import threading
+from openai import OpenAI
+import os
 
+from dotenv import load_dotenv
+load_dotenv()
 
 def client_thread(conn, addr, all_connections, clients, groups):
     try:
@@ -46,6 +50,15 @@ def client_thread(conn, addr, all_connections, clients, groups):
                         )
                 elif message.startswith("/group"):
                     handle_group_command(message, conn, all_connections, clients, groups)
+                elif message.startswith("/chatgpt"):
+                    parts = message.split(maxsplit=1)
+                    if len(parts) < 2 or not parts[1].strip():  # Check if there's a question part after the command
+                        conn.send("Server: Usage: /chatgpt <question> - please provide a question.".encode('utf-8'))
+                    else:
+                        question = parts[1].strip()
+                        response = get_ai_response(question)
+                        conn.send(f"(private) {username}: {message}".encode('utf-8'))
+                        conn.send(f"ChatGPT: {response}".encode('utf-8'))
                 else:
                     print(f"Message received from {username}: {message}")
                     broadcast(f"{username}: {message}", conn, all_connections, groups)
@@ -55,6 +68,21 @@ def client_thread(conn, addr, all_connections, clients, groups):
         print(f"Error or disconnection with {username}: {e}")
         remove_connection(conn, all_connections, clients, groups)
 
+def get_ai_response(question):
+    client = OpenAI(
+        # This is the default and can be omitted
+        api_key=os.environ.get("OPENAI_API_KEY"),
+    )
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "user",
+                "content": question,
+            }
+        ],
+        model="gpt-3.5-turbo",
+    )
+    return chat_completion.choices[0].message.content
 
 def handle_group_command(message, conn, all_connections, clients, groups):
     parts = message.split(maxsplit=2)
