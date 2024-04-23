@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import simpledialog
+from tkinter import simpledialog, messagebox
 import socket
 import threading
 
@@ -16,13 +16,16 @@ class ChatClient:
         self.setup_username()
 
     def setup_username(self):
-        self.username = simpledialog.askstring(
-            "Username", "Enter your username:", parent=self.root
-        )
-        if self.username:
-            self.connect_to_server()
-        else:
-            self.root.quit()  # Exit if no username is entered
+        while True:
+            self.username = simpledialog.askstring(
+                "Username", "Enter your username:", parent=self.root
+            )
+            if self.username:
+                if self.connect_to_server():
+                    break
+            else:
+                messagebox.showinfo("Username Needed", "You must enter a username to continue.")
+                continue  # Will ask for the username again
 
     def connect_to_server(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -30,10 +33,21 @@ class ChatClient:
             self.socket.connect((self.host, self.port))
             # Send username right after connecting
             self.socket.send(self.username.encode('utf-8'))
-            self.chat_window()
+            
+            # Wait for server response
+            server_response = self.socket.recv(1024).decode('utf-8')
+            if "Welcome" in server_response:
+                self.chat_window()
+                return True
+            else:
+                messagebox.showerror("Username Taken", "This username is already taken, please try another one.")
+                self.socket.close()
+                return False
         except Exception as e:
             print(f"Failed to connect to the server: {e}")
+            messagebox.showerror("Connection Failed", f"Failed to connect to the server: {e}")
             self.root.quit()
+            return False
 
     def chat_window(self):
       self.username_label = tk.Label(self.root, text=f"Username: {self.username}")

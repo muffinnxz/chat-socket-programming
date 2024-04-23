@@ -6,6 +6,11 @@ def client_thread(conn, addr, all_connections, clients):
         # First message from the connection is the username
         username = conn.recv(1024).decode('utf-8').strip()
         if username:
+            if username in clients:
+                # If username is already taken, notify the client and close the connection
+                conn.send("Server: Username is already taken, please try again with a different username.".encode('utf-8'))
+                conn.close()
+                return  # Exit the thread for this connection
             clients[username] = conn
             broadcast(f"Server: {username} has joined the chat!", conn, all_connections, include_self=False)
         else:
