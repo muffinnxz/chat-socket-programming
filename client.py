@@ -99,7 +99,7 @@ class ChatClient:
                 parts = message.split(maxsplit=2)
                 if len(parts) < 2 or (parts[1] in ["create", "join"] and len(parts) < 3):
                     self.text_area.config(state=tk.NORMAL)
-                    self.text_area.insert(tk.END, "Usage: /group <create|join> <groupname>, /group <list|leave>\n")
+                    self.text_area.insert(tk.END, "Usage: /group <create|join> <groupname>, /group <list|leave>, /group member, /group member <groupname>\n")
                     self.text_area.config(state=tk.DISABLED)
                 else:
                     self.socket.send(message.encode('utf-8'))

@@ -134,6 +134,24 @@ def handle_group_command(message, conn, all_connections, clients, groups):
                 break
         if not is_in_group:
             conn.send("Server: You are not in any group.\n".encode('utf-8'))
+    elif command == "member":
+        target_group = parts[2].strip() if len(parts) > 2 else None
+        if target_group and target_group in groups:
+            members = ", ".join([get_username(client, clients) for client in groups[target_group]])
+            conn.send(f"Members in '{target_group}': {members}\n".encode('utf-8'))
+        elif target_group and target_group not in groups:
+            conn.send("Server: Group does not exist.\n".encode('utf-8'))
+        else:
+            # Find the current group of the user
+            found_group = False
+            for group_name, members in groups.items():
+                if conn in members:
+                    member_names = ", ".join([get_username(client, clients) for client in members])
+                    conn.send(f"Members in your group '{group_name}': {member_names}\n".encode('utf-8'))
+                    found_group = True
+                    break
+            if not found_group:
+                conn.send("Server: You are not in any group.\n".encode('utf-8'))
 
 def list_users(conn, clients):
     user_list = "Online Users: " + ", ".join(clients.keys())
